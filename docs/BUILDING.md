@@ -123,3 +123,14 @@ py tests/benchmark_emulation.py --mode packaged --reference
 ```
 
 Each benchmark run creates a new directory under `build/optimization`, records budgets and timings, compares every resource against the original and checks that the input hash is unchanged. See [emulation details](EMULATION.md) for the measured results and what the execution budget means.
+
+## Release packages
+
+After building all three deliverables, package the existing binaries:
+
+```powershell
+py -m pip download --no-deps --no-binary=:all: --dest build/vendor unicorn==2.1.4 pyinstaller==6.22.3
+py scripts/package-release.py --version 1.0.0
+```
+
+This creates three binary ZIP files, an emulation dependency-source ZIP and `SHA256SUMS.txt` under `dist/releases/v1.0.0`. It checks the PE architecture, pinned source-archive hashes and ZIP contents without executing any protected input. An existing release directory is never overwritten.

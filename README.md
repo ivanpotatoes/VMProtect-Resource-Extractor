@@ -14,9 +14,21 @@ The input file is left unchanged. The plugin requires no kernel driver, Python i
 
 ![VMProtect Resource Extractor window](docs/images/plugin.png)
 
+## Download
+
+[v1.0.0 release](https://github.com/ivanpotatoes/VMProtect-Resource-Extractor/releases/tag/v1.0.0) — choose the package for your workflow:
+
+| Package | Contents |
+| --- | --- |
+| [Static CLI](https://github.com/ivanpotatoes/VMProtect-Resource-Extractor/releases/download/v1.0.0/VMProtect-Resource-Extractor-v1.0.0-static-x64.zip) | Standalone extractor; no Python required |
+| [Emulation CLI](https://github.com/ivanpotatoes/VMProtect-Resource-Extractor/releases/download/v1.0.0/VMProtect-Resource-Extractor-v1.0.0-emulation-x64.zip) | Emulator with bundled dependencies and the static extractor |
+| [x64dbg plugin](https://github.com/ivanpotatoes/VMProtect-Resource-Extractor/releases/download/v1.0.0/VMProtect-Resource-Extractor-v1.0.0-x64dbg-x64.zip) | `VMPResourceExtractor.dp64` and installation instructions |
+
+All three packages are built for Windows x64. SHA-256 checksums are included in the release.
+
 ## Static extraction
 
-Build `vmp-resource-extractor.exe`, then run:
+Unzip the static package, then run:
 
 ```text
 vmp-resource-extractor.exe protected.exe
@@ -106,14 +118,16 @@ This tool extracts the private resource tree. It does not rebuild `.rsrc` or pro
 | VMProtect | Static x64 EXE and DLL | Live x64dbg extraction |
 | --- | --- | --- |
 | 3.3.1 | Verified | Verified |
-| 3.4.0 | Verified | Not yet tested live |
-| 3.5.0 | Verified | Not yet tested live |
-| 3.6.0 | Verified | Not yet tested live |
-| 3.8.0 | Verified | Not yet tested live |
-| 3.9.4 | Verified | Not yet tested live |
+| 3.4.0 | Verified | Verified |
+| 3.5.0 | Verified | Verified |
+| 3.6.0 | Verified | Verified |
+| 3.8.0 | Verified | Verified |
+| 3.9.4 | Verified | Verified |
 | 3.10.1 | Verified | Verified |
 
 Static and mapped-image backend tests covered **21 files and 126 resources**, all matching the originals byte for byte. These fixtures used Resource Protection only and included menus, dialogs, string tables, custom data, named resources and multiple languages. Live plugin tests also covered automatic pausing, stale scans, existing output folders, breakpoint preservation and unload/reload.
+
+Live coverage includes maintainer verification of 3.4.0, 3.5.0, 3.6.0, 3.8.0 and 3.9.4.
 
 PE32 parsing has synthetic tests. **Real protected x32 files have not been validated**; emulation and the plugin currently support x64 only.
 
