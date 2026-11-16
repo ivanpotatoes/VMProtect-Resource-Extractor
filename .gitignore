@@ -1,4 +1,6 @@
 /build/
+/build-*/
 /dist/
 /test-output/
 __pycache__/
+.venv/
