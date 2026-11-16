@@ -1,0 +1,13 @@
+#pragma once
+#define IDD_VRE 501
+#define IDC_VRE_MODULE 510
+#define IDC_VRE_REFRESH 511
+#define IDC_VRE_TABLE 512
+#define IDC_VRE_OUTPUT 513
+#define IDC_VRE_BROWSE 514
+#define IDC_VRE_STATUS 515
+#define IDC_VRE_SCAN 516
+#define IDC_VRE_EXTRACT 517
+#define IDC_VRE_ABOUT 518
+#define IDC_VRE_HELP_SCAN 519
+#define IDC_VRE_HELP_OUTPUT 520
