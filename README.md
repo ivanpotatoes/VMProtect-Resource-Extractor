@@ -106,6 +106,10 @@ Install Visual Studio C++ Build Tools and the Windows SDK, then run:
 
 The binaries go into `dist`. [Build instructions](docs/BUILDING.md) cover the emulator, dependencies and tests.
 
+## Research behind the extractor
+
+- [VMProtect 3.3.x–3.10.x Resource Protection analysis](https://ivankozlovsky.com/blog/vmprotect-33x-310x-resource-protection-analysis)
+
 ## Contact
 
 Ivan Kozlovsky
