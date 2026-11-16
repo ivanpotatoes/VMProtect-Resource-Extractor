@@ -1,91 +1,63 @@
 # VMProtect Resource Extractor
 
-Extract VMProtect's private encrypted resources from an EXE or DLL. The tool discovers the resource table and key, decodes the contents and writes the resource metadata to JSON. You do not need the original file or a fixed address.
+I wrote this after tracing VMProtect's Resource Protection across versions 3.3.1 to 3.10.1. It finds the encrypted resource table, recovers its key and extracts the resources from EXE and DLL files.
 
-There are three ways to use it:
+There is a standalone extractor, a Unicorn-based emulator for packed files, and an x64dbg plugin. None of them needs the original unprotected file or a hardcoded address.
 
-| Mode | When to use it | Output |
-| --- | --- | --- |
-| **Static CLI** | The encrypted table and payloads are present in the file | Raw resources and a manifest |
-| **Emulation CLI** | A supported packed x64 file needs to initialize its resources first | Raw resources and a manifest |
-| **x64dbg plugin** | The EXE or DLL is already loaded in a debug session | Raw resources and a manifest |
-
-The input file is left unchanged. The plugin requires no kernel driver, Python installation or emulator executable.
-
-![VMProtect Resource Extractor window](docs/images/plugin.png)
+![VMProtect Resource Extractor](docs/images/plugin.png)
 
 ## Download
 
-[v1.0.0 release](https://github.com/ivanpotatoes/VMProtect-Resource-Extractor/releases/tag/v1.0.0) — choose the package for your workflow:
+**[v1.0.0](https://github.com/ivanpotatoes/VMProtect-Resource-Extractor/releases/tag/v1.0.0)**
 
-| Package | Contents |
-| --- | --- |
-| [Static CLI](https://github.com/ivanpotatoes/VMProtect-Resource-Extractor/releases/download/v1.0.0/VMProtect-Resource-Extractor-v1.0.0-static-x64.zip) | Standalone extractor; no Python required |
-| [Emulation CLI](https://github.com/ivanpotatoes/VMProtect-Resource-Extractor/releases/download/v1.0.0/VMProtect-Resource-Extractor-v1.0.0-emulation-x64.zip) | Emulator with bundled dependencies and the static extractor |
-| [x64dbg plugin](https://github.com/ivanpotatoes/VMProtect-Resource-Extractor/releases/download/v1.0.0/VMProtect-Resource-Extractor-v1.0.0-x64dbg-x64.zip) | `VMPResourceExtractor.dp64` and installation instructions |
+- [Static extractor](https://github.com/ivanpotatoes/VMProtect-Resource-Extractor/releases/download/v1.0.0/VMProtect-Resource-Extractor-v1.0.0-static-x64.zip)
+- [Emulator](https://github.com/ivanpotatoes/VMProtect-Resource-Extractor/releases/download/v1.0.0/VMProtect-Resource-Extractor-v1.0.0-emulation-x64.zip)
+- [x64dbg plugin](https://github.com/ivanpotatoes/VMProtect-Resource-Extractor/releases/download/v1.0.0/VMProtect-Resource-Extractor-v1.0.0-x64dbg-x64.zip)
 
-All three packages are built for Windows x64. SHA-256 checksums are included in the release.
+These are Windows x64 builds. No kernel driver or separate Python installation is needed. Checksums, licenses and dependency sources are included in the release.
 
-## Static extraction
+## Standalone
 
-Unzip the static package, then run:
+Start with the static extractor if the resource table and encrypted data are already in the file:
 
 ```text
 vmp-resource-extractor.exe protected.exe
 vmp-resource-extractor.exe protected.dll --output extracted
-vmp-resource-extractor.exe protected.exe --list
 ```
 
-The default output is `protected.exe.resources`, beside the input. Choose a **new output folder**; its parent must already exist. Existing folders are never overwritten, even if empty.
+By default, the output goes into `protected.exe.resources` beside the input. Use a new folder for each extraction; existing folders are left alone.
 
-If more than one valid table is found, inspect them with `--list` and select one explicitly:
-
-```text
-vmp-resource-extractor.exe protected.exe --table-rva 0x12345 --key 0x12345678 --output extracted
-```
-
-Use the values reported for your file. Hexadecimal arguments require the `0x` prefix.
-
-## Emulation for packed files
-
-The emulator runs protected startup code inside Unicorn. It models the Windows calls needed by the tested files; the target is not launched as a Windows process.
+For a packed file, try the emulator:
 
 ```text
 vmp-resource-emulator.exe protected.exe --output extracted
+```
+
+It runs the protected startup code in Unicorn until the resources become available. It does not launch the file as a Windows process. Python, Unicorn and Capstone are bundled in the executable.
+
+The default limits are 240 seconds and five billion instructions. A larger file may need more:
+
+```text
 vmp-resource-emulator.exe protected.dll --seconds 600 --instructions 15000000000
 ```
 
-The packaged executable includes Python, Unicorn, Capstone and the extractor. Defaults are **240 seconds** and a **five-billion-instruction budget**. Larger files can need more time. Unsupported APIs, exceptions or exhausted budgets produce an error.
+The emulator handles the startup paths I tested. An unsupported API or exception can still stop it. The three packed test files, timings and implementation details are in [the emulation notes](docs/EMULATION.md).
 
-Three packed research files were verified against their originals. This does not cover every combination of VMProtect options. See [emulation details and measurements](docs/EMULATION.md).
+## x64dbg
 
-## x64dbg plugin
+1. Copy `VMPResourceExtractor.dp64` into the `plugins` folder beside `x64dbg.exe` and start the debugger.
+2. Open **Plugins > VMP Resource Extractor > Extract resources...**
 
-### 1. Install
+![Plugin menu](docs/images/menu.png)
 
-Copy `VMPResourceExtractor.dp64` into the `plugins` folder beside `x64dbg.exe`, then start the debugger. This plugin build supports **x64 targets**.
+3. Load your program and let it finish unpacking. For a DLL, wait until the host has loaded and initialized it. Select the module in the plugin and click **Scan**.
+4. Choose a new output folder and click **Extract**. If more than one table was found, select one first.
 
-### 2. Open the extractor
+**Scan pauses a running target and leaves it paused.** Press F9 when you want to continue. If you resume execution or a DLL is loaded or unloaded, scan again before extracting.
 
-Open **Plugins > VMP Resource Extractor > Extract resources...**
+Use **Refresh** to update the module list. **Browse** picks a parent directory and suggests a new output folder. The plugin reads memory without changing your code or breakpoint settings.
 
-![x64dbg plugin menu](docs/images/menu.png)
-
-### 3. Select and scan
-
-Load or attach to your program and let it finish unpacking. For a DLL, wait until the host has loaded and initialized it.
-
-Select the EXE or DLL in **Module**, then click **Scan**. Use **Refresh** after a new module is loaded. A running target is paused before memory is copied and remains paused afterward.
-
-### 4. Extract
-
-If several tables are found, select the one you want. Choose a new output folder and click **Extract**. **Browse** selects the parent folder and suggests an unused child folder. Use **F9** to continue the target when finished.
-
-The plugin does not patch target code, install guest hooks or change breakpoint settings. Resuming the target or loading/unloading a DLL invalidates the scan; scan again before extracting.
-
-![About VMProtect Resource Extractor](docs/images/about.png)
-
-### Command bar
+The same actions are available from the command bar:
 
 ```text
 vre_ui
@@ -95,23 +67,15 @@ vre_dump "C:\work\extracted-next"
 vre_status
 ```
 
-`vre_scan` uses the main EXE by default. `vre_dump` combines scanning and extraction. Both accept an optional address expression for another loaded module:
+`vre_dump` scans and extracts in one command. See [plugin commands and capture limits](docs/PLUGIN.md) for module selection and scripting.
 
-```text
-vre_scan [module-expression]
-vre_extract "new output folder"[, candidate-index]
-vre_dump "new output folder"[, module-expression][, candidate-index]
-```
+## Output
 
-Square brackets indicate optional arguments; do not type them. Candidate indices are zero-based decimal numbers printed in the log. Commands run in the background. `vre_status` reports the result; scripts can query `vre_busy()`, `vre_ok()` and `vre_candidates()`.
+You get `resource-0001.bin`, `resource-0002.bin`, and so on, plus `manifest.json`. The manifest records each resource's type, name or ID, language, codepage, size and RVA.
 
-## What gets extracted
+The files contain the raw resource bytes. A dialog stays a binary dialog resource, and an icon resource is not automatically converted to an ICO file. The input file is unchanged.
 
-The output folder contains numbered files such as `resource-0001.bin` and `manifest.json`. Each record includes the resource type, ID or name, language, codepage, size, payload RVA and output filename. Named and numeric identifiers retain their types.
-
-Resources keep their native format. Dialogs and string tables remain binary resource data; an icon resource does not automatically become a complete ICO file. The plugin also records the loaded module base and capture method.
-
-This tool extracts the private resource tree. It does not rebuild `.rsrc` or produce a restored executable. Ordinary resources left in the PE resource directory, such as the manifest, are not included.
+This is an extractor. It does not rebuild `.rsrc` or produce an unpacked executable. Ordinary resources still present in the PE resource directory, such as its manifest, are outside the encrypted tree and are not exported.
 
 ## Tested versions
 
@@ -125,41 +89,32 @@ This tool extracts the private resource tree. It does not rebuild `.rsrc` or pro
 | 3.9.4 | Verified | Verified |
 | 3.10.1 | Verified | Verified |
 
-Static and mapped-image backend tests covered **21 files and 126 resources**, all matching the originals byte for byte. These fixtures used Resource Protection only and included menus, dialogs, string tables, custom data, named resources and multiple languages. Live plugin tests also covered automatic pausing, stale scans, existing output folders, breakpoint preservation and unload/reload.
+The static and mapped-image tests recovered **126 resources from 21 files**, with every byte matching the originals. These files had only Resource Protection enabled. They cover menus, dialogs, string tables, custom types, named resources and multiple languages.
 
-Live coverage includes maintainer verification of 3.4.0, 3.5.0, 3.6.0, 3.8.0 and 3.9.4.
+Live extraction has also been checked on each version above, including my tests of 3.4.0, 3.5.0, 3.6.0, 3.8.0 and 3.9.4. Packed-file emulation was tested separately on the three files listed in the emulation notes.
 
-PE32 parsing has synthetic tests. **Real protected x32 files have not been validated**; emulation and the plugin currently support x64 only.
+Real protected x32 files have not been tested. The emulator and plugin currently support x64 only.
 
-## Limits
+## Build
 
-- Static extraction needs the table and payloads to be present in the file. Use emulation or the plugin when they appear only after initialization.
-- A valid table is not a payload integrity check. With the plugin, wait until the resources have finished unpacking before scanning.
-- The plugin requires readable PE headers and sections. Missing or discarded sections can prevent capture. Its module limit is 256 MiB, with a 20-second capture/scan budget.
-- The emulator provides the Windows behavior needed by the tested files, rather than a complete loader or exception dispatcher. Additional protection combinations can fail.
-
-## Build and tests
-
-The C++ tools need Visual Studio C++ build tools and the Windows SDK. The scripts use an existing x64 developer shell or locate Visual Studio through `vswhere`.
+Install Visual Studio C++ Build Tools and the Windows SDK, then run:
 
 ```powershell
 .\build.cmd
 .\build-plugin.cmd "C:\path\to\pluginsdk"
 ```
 
-Outputs are written to `dist`. The plugin SDK path can also be supplied through `VRE_SDK`. See [build instructions and tests](docs/BUILDING.md) for the emulator, CMake and fixture setup.
+The binaries go into `dist`. [Build instructions](docs/BUILDING.md) cover the emulator, dependencies and tests.
 
-## Research and contact
+## Contact
 
-Built from my VMProtect Resource Protection research across versions 3.3.1–3.10.1.
+Ivan Kozlovsky
 
-- Research and other projects: [ivankozlovsky.com](https://ivankozlovsky.com)
-- Contact: [contact@ivankozlovsky.com](mailto:contact@ivankozlovsky.com)
-- PGP: [ivankozlovsky.com/pgp.asc](https://ivankozlovsky.com/pgp.asc)
+[ivankozlovsky.com](https://ivankozlovsky.com) · [contact@ivankozlovsky.com](mailto:contact@ivankozlovsky.com) · [PGP](https://ivankozlovsky.com/pgp.asc)
 
-## License
+![About](docs/images/about.png)
 
-The original project code is under the [MIT License](LICENSE). Third-party components keep their own licenses. The packaged emulator includes GPL-2.0 Unicorn; see [third-party notices](THIRD-PARTY-NOTICES.md) and [license texts](licenses).
+Project code: [MIT](LICENSE). Bundled dependencies have their own licenses, including GPL-2.0 for Unicorn. See [third-party notices](THIRD-PARTY-NOTICES.md).
 
 ## Star history
 
