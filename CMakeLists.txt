@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.20)
+project(VMProtectResourceExtractor LANGUAGES CXX)
+add_executable(vmp-resource-extractor standalone/main.cpp)
+target_compile_features(vmp-resource-extractor PRIVATE cxx_std_17)
+if(MSVC)
+  target_compile_options(vmp-resource-extractor PRIVATE /W4 /utf-8)
+  set_property(TARGET vmp-resource-extractor PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
